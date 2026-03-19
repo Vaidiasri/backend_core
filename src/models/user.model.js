@@ -36,14 +36,13 @@ const userSchema = mongoose.Schema({
 });
 
 // Pre-save hook to hash the password before saving it to the database
-userSchema.pre("save", async function(next) {
+userSchema.pre("save", async function() {
     // If password is not modified, skip hashing and proceed
     if (!this.isModified("password")) {
-        return next();
+        return;
     }
     // Hash the password using bcrypt with a salt factor of 10
     this.password = await bcrypt.hash(this.password, 10);
-    next(); // Pass control to the next middleware
 });
 
 // Instance method to compare providing password with the hashed password in database

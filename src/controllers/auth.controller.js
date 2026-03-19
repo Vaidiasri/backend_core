@@ -77,7 +77,57 @@ async function userRegisterController(req, res) { // Define an asynchronous func
         }); // End of the internal server error response
     } // End of the catch block
 } // End of the userRegisterController function
+async function userLoginController(req, res) {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields (email, password) are required"
+            });
+        }
+        const user = await userModel.findOne({ email }).select("+password");
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password"
+            });
+        }
+        const token = user.generateJWT();
+        const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 24 * 60 * 60 * 1000,
+            sameSite: "strict"
+        };
+        res.cookie("token", token, cookieOptions);
+        res.status(200).json({
+            success: true,
+            message: "User logged in successfully",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
+        });
+    } catch (error) {
+        console.error("Login Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "An internal server error occurred"
+        });
+    }
+}
 
 module.exports = { // Export the controller as an object
-    userRegisterController // Include the userRegisterController in the exports
+    userRegisterController, // Include the userRegisterController in the exports
+    userLoginController // Include the userLoginController in the exports
 }; // End of module.exports
